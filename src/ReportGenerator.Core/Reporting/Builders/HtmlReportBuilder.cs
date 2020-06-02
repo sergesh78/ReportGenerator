@@ -66,6 +66,14 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders
                 this.CreateSummaryReport(renderer, summaryResult);
             }
 
+            foreach (var assembly in summaryResult.Assemblies)
+            {
+                using (var renderer = new HtmlRenderer(false, this.htmlMode))
+                {
+                    this.CreateAssemblyReport(renderer, summaryResult, assembly);
+                }
+            }
+
             File.Copy(
                 Path.Combine(this.ReportContext.ReportConfiguration.TargetDirectory, "index.html"),
                 Path.Combine(this.ReportContext.ReportConfiguration.TargetDirectory, "index.htm"),

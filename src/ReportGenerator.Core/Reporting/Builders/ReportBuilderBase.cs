@@ -277,11 +277,6 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders
                 foreach (var assembly in summaryResult.Assemblies)
                 {
                     reportRenderer.SummaryAssembly(assembly, summaryResult.SupportsBranchCoverage);
-
-                    foreach (var @class in assembly.Classes)
-                    {
-                        reportRenderer.SummaryClass(@class, summaryResult.SupportsBranchCoverage);
-                    }
                 }
 
                 reportRenderer.FinishTable();
@@ -295,6 +290,67 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders
 
                 reportRenderer.Paragraph(ReportResources.NoCoveredAssemblies);
             }
+
+            reportRenderer.CustomSummary(summaryResult.Assemblies, this.ReportContext.RiskHotspotAnalysisResult.RiskHotspots, summaryResult.SupportsBranchCoverage);
+
+            reportRenderer.AddFooter();
+            reportRenderer.SaveSummaryReport(this.ReportContext.ReportConfiguration.TargetDirectory);
+        }
+
+        /// <summary>
+        /// Creates the summary report.
+        /// </summary>
+        /// <param name="reportRenderer">The report renderer.</param>
+        /// <param name="summaryResult">The summary result.</param>
+        public virtual void CreateAssemblyReport(IReportRenderer reportRenderer, SummaryResult summaryResult, Assembly anAssembly)
+        {
+            if (reportRenderer == null)
+            {
+                throw new ArgumentNullException(nameof(reportRenderer));
+            }
+
+            if (summaryResult == null)
+            {
+                throw new ArgumentNullException(nameof(summaryResult));
+            }
+
+            if (anAssembly == null)
+            {
+                throw new ArgumentNullException(nameof(anAssembly));
+            }
+
+            string title = this.ReportContext.ReportConfiguration.Title != null ? $"{ReportResources.Summary} - {this.ReportContext.ReportConfiguration.Title}" : ReportResources.Summary;
+
+            title = anAssembly.Name;
+
+            reportRenderer.BeginSummaryReport(this.ReportContext.ReportConfiguration.TargetDirectory, HtmlRenderer.GetAssemblyReportFilename(anAssembly.Name), title);
+            reportRenderer.HeaderWithGithubLinks(title);
+
+            reportRenderer.BeginKeyValueTable();
+            reportRenderer.KeyValueRow(ReportResources.GeneratedOn, DateTime.Now.ToShortDateString() + " - " + DateTime.Now.ToLongTimeString());
+            reportRenderer.KeyValueRow(ReportResources.Classes, Convert.ToString(anAssembly.Classes.Count(), CultureInfo.InvariantCulture));
+            reportRenderer.KeyValueRow(ReportResources.Files2, anAssembly.Classes.SelectMany(a => a.Files).Distinct().Count().ToString(CultureInfo.InvariantCulture));
+            reportRenderer.KeyValueRow(ReportResources.CoveredLines, anAssembly.CoverableLines.ToString(CultureInfo.InvariantCulture));
+            reportRenderer.KeyValueRow(ReportResources.UncoveredLines, (anAssembly.CoverableLines - anAssembly.CoveredLines).ToString(CultureInfo.InvariantCulture));
+            reportRenderer.KeyValueRow(ReportResources.CoverableLines, anAssembly.CoverableLines.ToString(CultureInfo.InvariantCulture));
+            reportRenderer.KeyValueRow(ReportResources.TotalLines, anAssembly.TotalLines.GetValueOrDefault().ToString(CultureInfo.InvariantCulture));
+
+            reportRenderer.FinishTable();
+
+            reportRenderer.Header(ReportResources.Coverage3);
+
+            reportRenderer.BeginSummaryTable();
+            reportRenderer.BeginSummaryTable(summaryResult.SupportsBranchCoverage);
+
+            reportRenderer.SummaryAssembly(anAssembly, summaryResult.SupportsBranchCoverage);
+            foreach (var @class in anAssembly.Classes)
+            {
+                // sergesh bookmark
+                reportRenderer.SummaryClass(@class, summaryResult.SupportsBranchCoverage);
+            }
+
+            reportRenderer.FinishTable();
+            reportRenderer.FinishSummaryTable();
 
             reportRenderer.CustomSummary(summaryResult.Assemblies, this.ReportContext.RiskHotspotAnalysisResult.RiskHotspots, summaryResult.SupportsBranchCoverage);
 

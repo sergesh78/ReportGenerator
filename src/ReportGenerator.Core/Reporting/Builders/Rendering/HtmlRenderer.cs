@@ -415,106 +415,12 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering
             }
 
             this.javaScriptContent.AppendLine("var assemblies = [");
-
-            var historicCoverageExecutionTimes = new HashSet<DateTime>();
-            var tagsByBistoricCoverageExecutionTime = new Dictionary<DateTime, string>();
-
-            foreach (var assembly in assemblies)
-            {
-                this.javaScriptContent.AppendLine("  {");
-                this.javaScriptContent.AppendFormat("    \"name\": \"{0}\",", assembly.Name.Replace(@"\", @"\\"));
-                this.javaScriptContent.AppendLine();
-                this.javaScriptContent.AppendLine("    \"classes\": [");
-
-                foreach (var @class in assembly.Classes)
-                {
-                    var historicCoverages = this.FilterHistoricCoverages(@class.HistoricCoverages, 10);
-
-                    var lineCoverageHistory = "[" + string.Join(",", historicCoverages.Select(h => h.CoverageQuota.GetValueOrDefault().ToString(CultureInfo.InvariantCulture))) + "]";
-                    var branchCoverageHistory = "[]";
-                    if (historicCoverages.Any(h => h.BranchCoverageQuota.HasValue))
-                    {
-                        branchCoverageHistory = "[" + string.Join(",", historicCoverages.Select(h => h.BranchCoverageQuota.GetValueOrDefault().ToString(CultureInfo.InvariantCulture))) + "]";
-                    }
-
-                    var historicCoveragesSb = new StringBuilder();
-                    int historicCoveragesCounter = 0;
-                    historicCoveragesSb.Append("[");
-                    foreach (var historicCoverage in @class.HistoricCoverages)
-                    {
-                        historicCoverageExecutionTimes.Add(historicCoverage.ExecutionTime);
-                        tagsByBistoricCoverageExecutionTime[historicCoverage.ExecutionTime] = historicCoverage.Tag;
-
-                        if (historicCoveragesCounter++ > 0)
-                        {
-                            historicCoveragesSb.Append(", ");
-                        }
-
-                        historicCoveragesSb.AppendFormat(
-                            "{{ \"et\": \"{0} - {1}{2}{3}\", \"cl\": {4}, \"ucl\": {5}, \"cal\": {6}, \"tl\": {7}, \"lcq\": {8}, \"cb\": {9}, \"tb\": {10}, \"bcq\": {11} }}",
-                            historicCoverage.ExecutionTime.ToShortDateString(),
-                            historicCoverage.ExecutionTime.ToLongTimeString(),
-                            string.IsNullOrEmpty(historicCoverage.Tag) ? string.Empty : " - ",
-                            historicCoverage.Tag,
-                            historicCoverage.CoveredLines.ToString(CultureInfo.InvariantCulture),
-                            (historicCoverage.CoverableLines - historicCoverage.CoveredLines).ToString(CultureInfo.InvariantCulture),
-                            historicCoverage.CoverableLines.ToString(CultureInfo.InvariantCulture),
-                            historicCoverage.TotalLines.ToString(CultureInfo.InvariantCulture),
-                            historicCoverage.CoverageQuota.GetValueOrDefault().ToString(CultureInfo.InvariantCulture),
-                            historicCoverage.CoveredBranches.ToString(CultureInfo.InvariantCulture),
-                            historicCoverage.TotalBranches.ToString(CultureInfo.InvariantCulture),
-                            historicCoverage.BranchCoverageQuota.GetValueOrDefault().ToString(CultureInfo.InvariantCulture));
-                    }
-
-                    historicCoveragesSb.Append("]");
-
-                    this.javaScriptContent.Append("      { ");
-                    this.javaScriptContent.AppendFormat("\"name\": \"{0}\",", @class.Name.Replace(@"\", @"\\"));
-                    this.javaScriptContent.AppendFormat(
-                        " \"rp\": \"{0}\",",
-                        this.onlySummary ? string.Empty : GetClassReportFilename(@class.Assembly.ShortName, @class.Name));
-                    this.javaScriptContent.AppendFormat(" \"cl\": {0},", @class.CoveredLines);
-                    this.javaScriptContent.AppendFormat(" \"ucl\": {0},", @class.CoverableLines - @class.CoveredLines);
-                    this.javaScriptContent.AppendFormat(" \"cal\": {0},", @class.CoverableLines);
-                    this.javaScriptContent.AppendFormat(" \"tl\": {0},", @class.TotalLines.GetValueOrDefault());
-                    this.javaScriptContent.AppendFormat(" \"ct\": \"{0}\",", @class.CoverageType);
-                    this.javaScriptContent.AppendFormat(
-                        " \"mc\": {0},",
-                        @class.CoverageType == CoverageType.MethodCoverage && @class.CoverageQuota.HasValue ? @class.CoverageQuota.Value.ToString(CultureInfo.InvariantCulture) : "\"-\"");
-                    this.javaScriptContent.AppendFormat(" \"cb\": {0},", @class.CoveredBranches.GetValueOrDefault());
-                    this.javaScriptContent.AppendFormat(" \"tb\": {0},", @class.TotalBranches.GetValueOrDefault());
-                    this.javaScriptContent.AppendFormat(" \"lch\": {0},", lineCoverageHistory);
-                    this.javaScriptContent.AppendFormat(" \"bch\": {0},", branchCoverageHistory);
-                    this.javaScriptContent.AppendFormat(" \"hc\": {0}", historicCoveragesSb.ToString());
-
-                    this.javaScriptContent.AppendLine(" },");
-                }
-
-                this.javaScriptContent.AppendLine("    ]},");
-            }
-
+            
             this.javaScriptContent.AppendLine("];");
 
             this.javaScriptContent.AppendLine();
 
             this.javaScriptContent.Append("var historicCoverageExecutionTimes = [");
-            int historicCoverageExecutionTimesCounter = 0;
-
-            foreach (var item in historicCoverageExecutionTimes.OrderByDescending(i => i).Skip(1).Take(100).ToList())
-            {
-                if (historicCoverageExecutionTimesCounter++ > 0)
-                {
-                    this.javaScriptContent.Append(", ");
-                }
-
-                string tag = tagsByBistoricCoverageExecutionTime[item];
-                this.javaScriptContent.AppendFormat(
-                    "\"{0} - {1}{2}{3}\"",
-                    item.ToShortDateString(),
-                    item.ToLongTimeString(),
-                    string.IsNullOrEmpty(tag) ? string.Empty : " - ",
-                    tag);
-            }
 
             this.javaScriptContent.AppendLine("];");
 
@@ -1017,7 +923,7 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering
             }
 
             this.reportTextWriter.Write("<tr>");
-            this.reportTextWriter.Write("<th>{0}</th>", WebUtility.HtmlEncode(assembly.Name));
+            this.reportTextWriter.Write("<th><a target=\"_blank\" href=\"{0}\">{1}</a></th>", GetAssemblyReportFilename(assembly.Name), WebUtility.HtmlEncode(assembly.Name));
             this.reportTextWriter.Write("<th class=\"right\">{0}</th>", assembly.CoveredLines);
             this.reportTextWriter.Write("<th class=\"right\">{0}</th>", assembly.CoverableLines - assembly.CoveredLines);
             this.reportTextWriter.Write("<th class=\"right\">{0}</th>", assembly.CoverableLines);
@@ -1057,7 +963,7 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering
             {
                 filenameColumn = string.Format(
                     CultureInfo.InvariantCulture,
-                    "<a href=\"{0}\">{1}</a>",
+                    "<a target=\"_blank\" href=\"{0}\">{1}</a>",
                     WebUtility.HtmlEncode(GetClassReportFilename(@class.Assembly.ShortName, @class.Name)),
                     WebUtility.HtmlEncode(@class.Name));
             }
@@ -1243,7 +1149,7 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering
         /// <param name="assemblyName">Name of the assembly.</param>
         /// <param name="className">Name of the class.</param>
         /// <returns>The file name.</returns>
-        private static string GetClassReportFilename(string assemblyName, string className)
+        public static string GetClassReportFilename(string assemblyName, string className)
         {
             string key = assemblyName + "_" + className;
 
@@ -1297,6 +1203,11 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering
             }
 
             return fileName;
+        }
+
+        public static string GetAssemblyReportFilename(string assemblyName)
+        {
+            return GetClassReportFilename(assemblyName, ":all");
         }
 
         /// <summary>
