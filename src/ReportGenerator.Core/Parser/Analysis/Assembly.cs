@@ -8,6 +8,7 @@ namespace Palmmedia.ReportGenerator.Core.Parser.Analysis
     /// <summary>
     /// Represents one assembly.
     /// </summary>
+    [System.Diagnostics.DebuggerDisplay("Assembly {Name}")]
     public class Assembly
     {
         /// <summary>

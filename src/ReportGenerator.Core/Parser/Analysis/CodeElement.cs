@@ -5,6 +5,7 @@ namespace Palmmedia.ReportGenerator.Core.Parser.Analysis
     /// <summary>
     /// Represents an element (e.g. a method or property) in a code file.
     /// </summary>
+    [System.Diagnostics.DebuggerDisplay("{CodeElementType.ToString()} {Name}")]
     public class CodeElement
     {
         /// <summary>

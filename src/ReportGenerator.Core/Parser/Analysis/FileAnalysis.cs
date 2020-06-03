@@ -1,10 +1,12 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Palmmedia.ReportGenerator.Core.Parser.Analysis
 {
     /// <summary>
     /// Coverage information of a source file.
     /// </summary>
+    [DebuggerDisplay("{Path}")]
     public class FileAnalysis
     {
         /// <summary>

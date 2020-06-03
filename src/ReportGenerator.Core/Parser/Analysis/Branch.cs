@@ -3,6 +3,7 @@
     /// <summary>
     /// Represents a branch.
     /// </summary>
+    [System.Diagnostics.DebuggerDisplay("{identifier} : {BranchVisits}")]
     public class Branch
     {
         /// <summary>

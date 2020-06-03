@@ -10,6 +10,7 @@ namespace Palmmedia.ReportGenerator.Core.Parser.Analysis
     /// <summary>
     /// Represents a source code file.
     /// </summary>
+    [System.Diagnostics.DebuggerDisplay("{Path}")]
     public class CodeFile
     {
         /// <summary>
