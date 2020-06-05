@@ -13,6 +13,8 @@ namespace Palmmedia.ReportGenerator.Core.Parser.Analysis
     [System.Diagnostics.DebuggerDisplay("{Path}")]
     public class CodeFile
     {
+        public string tag;
+
         /// <summary>
         /// The Logger.
         /// </summary>
@@ -234,6 +236,8 @@ namespace Palmmedia.ReportGenerator.Core.Parser.Analysis
                 var codeFile = (CodeFile)obj;
                 string fileNameToCompare = codeFile.Path.Substring(codeFile.Path.LastIndexOf('\\') + 1);
 
+
+                // todo: bug bug, can't handle same file name in different folders
                 string fileName = this.Path.Substring(this.Path.LastIndexOf('\\') + 1);
                 return fileName.Equals(fileNameToCompare, StringComparison.OrdinalIgnoreCase);
             }
