@@ -84,7 +84,7 @@ namespace Palmmedia.ReportGenerator.Core
 
             if (namedArguments.TryGetValue("FILEFILTERS", out value))
             {
-                fileFilters = value.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+                fileFilters = (@";+**src**").Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
             }
 
             if (namedArguments.TryGetValue("VERBOSITY", out value))

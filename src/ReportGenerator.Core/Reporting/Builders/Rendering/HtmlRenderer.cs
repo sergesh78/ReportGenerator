@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -165,6 +166,34 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering
                     : CssLink;
 
                 this.reportTextWriter.WriteLine(HtmlStart, WebUtility.HtmlEncode(className), WebUtility.HtmlEncode(additionalTitle + ReportResources.CoverageReport), style);
+            }
+        }
+
+        /// <summary>
+        /// Begins the class report.
+        /// </summary>
+        /// <param name="targetDirectory">The target directory.</param>
+        /// <param name="codeFile">Name of the source file.</param>
+        /// <param name="additionalTitle">Additional title.</param>
+        public void BeginFileReport(string targetDirectory, string codeFile, string additionalTitle)
+        {
+            this.classReport = true;
+
+            string targetPath = GetFileReportFilename(codeFile);
+
+            Logger.DebugFormat(Resources.WritingReportFile, targetPath);
+
+            string targetFullPath = Path.Combine(targetDirectory, targetPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(targetFullPath));
+            this.CreateTextWriter(targetFullPath);
+
+            using (var cssStream = this.GetCombinedCss())
+            {
+                string style = this.htmlMode == HtmlMode.InlineCssAndJavaScript ?
+                    "<style type=\"text/css\">" + new StreamReader(cssStream).ReadToEnd() + "</style>"
+                    : CssLink;
+
+                this.reportTextWriter.WriteLine(HtmlStart, WebUtility.HtmlEncode(codeFile), WebUtility.HtmlEncode(additionalTitle + ReportResources.CoverageReport), style);
             }
         }
 
@@ -415,7 +444,7 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering
             }
 
             this.javaScriptContent.AppendLine("var assemblies = [");
-            
+
             this.javaScriptContent.AppendLine("];");
 
             this.javaScriptContent.AppendLine();
@@ -992,6 +1021,44 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering
         }
 
         /// <summary>
+        /// Adds the coverage information of a class to the report.
+        /// </summary>
+        /// <param name="codeFile">The class.</param>
+        /// <param name="branchCoverageAvailable">if set to <c>true</c> branch coverage is available.</param>
+        public void SummaryFile(CodeFile codeFile, bool branchCoverageAvailable)
+        {
+            var filenameColumn = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "<a target=\"_blank\" href=\"{0}\">{1}</a>",
+                    WebUtility.HtmlEncode(GetFileReportFilename(codeFile.Path)),
+                    WebUtility.HtmlEncode(codeFile.Path));
+
+            this.reportTextWriter.Write("<tr>");
+            this.reportTextWriter.Write("<td>{0}</td>", filenameColumn);
+            this.reportTextWriter.Write("<td class=\"right\">{0}</td>", codeFile.CoveredLines);
+            this.reportTextWriter.Write("<td class=\"right\">{0}</td>", codeFile.CoverableLines - codeFile.CoveredLines);
+            this.reportTextWriter.Write("<td class=\"right\">{0}</td>", codeFile.CoverableLines);
+            this.reportTextWriter.Write("<td class=\"right\">{0}</td>", codeFile.TotalLines.GetValueOrDefault());
+            var quota = codeFile.CoverageQuota(0, codeFile.LineVisitStatus.Count - 1);
+            this.reportTextWriter.Write(
+                "<td title=\"{0}\" class=\"right\">{1}</td>",
+                CoverageType.LineCoverage, // todo
+                quota.HasValue ? quota.Value.ToString(CultureInfo.InvariantCulture) + "%" : string.Empty);
+
+            this.reportTextWriter.Write("<td>{0}</td>", CreateCoverageTable(quota));
+
+            //if (branchCoverageAvailable)
+            //{
+            //    this.reportTextWriter.Write(
+            //        "<td class=\"right\">{0}</td>",
+            //        codeFile.BranchCoverageQuota.HasValue ? codeFile.BranchCoverageQuota.Value.ToString(CultureInfo.InvariantCulture) + "%" : string.Empty);
+            //    this.reportTextWriter.Write("<td>{0}</td>", CreateCoverageTable(codeFile.BranchCoverageQuota));
+            //}
+
+            this.reportTextWriter.WriteLine("</tr>");
+        }
+
+        /// <summary>
         /// Adds the footer to the report.
         /// </summary>
         public void AddFooter()
@@ -1205,9 +1272,36 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering
             return fileName;
         }
 
+        /// <summary>
+        /// Gets the file name of the report file for the given class.
+        /// </summary>
+        /// <param name="name">Name of the file.</param>
+        /// <returns>The file name.</returns>
+        public static string GetFileReportFilename(string name)
+        {
+            // todo: cache 
+            int nSrcPos = name.IndexOf("\\src\\", StringComparison.OrdinalIgnoreCase);
+            if (nSrcPos >= 0)
+            {
+                // use relative path based on first occurence of src folder
+                return name.Substring(nSrcPos + 1) + ".html";
+            }
+
+            var fileName = StringHelper.ReplaceInvalidPathChars(name) + ".html";
+            if (fileName.Length > 200)
+            {
+                string firstPart = fileName.Substring(0, 50);
+                string lastPart = fileName.Substring(fileName.Length - 45, 45);
+
+                fileName = firstPart + lastPart;
+            }
+
+            return fileName;
+        }
+
         public static string GetAssemblyReportFilename(string assemblyName)
         {
-            return GetClassReportFilename(assemblyName, ":all");
+            return StringHelper.ReplaceInvalidPathChars(assemblyName) + ".html";
         }
 
         /// <summary>

@@ -167,6 +167,93 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders
         }
 
         /// <summary>
+        /// Creates a class report.
+        /// </summary>
+        /// <param name="reportRenderer">The report renderer.</param>
+        /// <param name="codeFile"></param>
+        /// <param name="fileAnalysis">The file analyses that correspond to the class.</param>
+        /// <param name="sourceFile">The source file.</param>
+        public virtual void CreateFileReport(IReportRenderer reportRenderer, CodeFile codeFile, FileAnalysis fileAnalysis)
+        {
+            if (reportRenderer == null)
+            {
+                throw new ArgumentNullException(nameof(reportRenderer));
+            }
+
+            if (fileAnalysis == null)
+            {
+                throw new ArgumentNullException(nameof(fileAnalysis));
+            }
+
+
+            string additionalTitle = this.ReportContext.ReportConfiguration.Title != null ? $"{this.ReportContext.ReportConfiguration.Title} - " : null;
+
+            reportRenderer.BeginFileReport(this.ReportContext.ReportConfiguration.TargetDirectory, codeFile.Path, additionalTitle);
+
+            if (this.ReportContext.ReportConfiguration.Title != null)
+            {
+                reportRenderer.HeaderWithBackLink($"{ReportResources.Summary} - {this.ReportContext.ReportConfiguration.Title}");
+            }
+            else
+            {
+                reportRenderer.HeaderWithBackLink(ReportResources.Summary);
+            }
+
+            reportRenderer.BeginKeyValueTable();
+            reportRenderer.KeyValueRow(ReportResources.Files3, codeFile.Path);
+            reportRenderer.KeyValueRow(ReportResources.CoveredLines, Convert.ToString(codeFile.CoveredLines, CultureInfo.CurrentUICulture));
+            reportRenderer.KeyValueRow(ReportResources.UncoveredLines, Convert.ToString(codeFile.CoverableLines - codeFile.CoveredLines, CultureInfo.CurrentUICulture));
+            reportRenderer.KeyValueRow(ReportResources.CoverableLines, Convert.ToString(codeFile.CoverableLines, CultureInfo.CurrentUICulture));
+            reportRenderer.KeyValueRow(ReportResources.TotalLines, Convert.ToString(codeFile.TotalLines, CultureInfo.CurrentUICulture));
+
+            if (this.ReportContext.ReportConfiguration.Tag != null)
+            {
+                reportRenderer.KeyValueRow(ReportResources.Tag, this.ReportContext.ReportConfiguration.Tag);
+            }
+
+            reportRenderer.FinishTable();
+
+            if (codeFile.MethodMetrics.Any())
+            {
+                reportRenderer.Header(ReportResources.Metrics);
+                reportRenderer.MetricsTable(codeFile.MethodMetrics);
+            }
+
+            reportRenderer.Header(ReportResources.Files);
+
+            reportRenderer.File(codeFile.Path);
+            if (!string.IsNullOrEmpty(fileAnalysis.Error))
+            {
+                reportRenderer.Paragraph(fileAnalysis.Error);
+            }
+            else
+            {
+                reportRenderer.BeginLineAnalysisTable(new[] { string.Empty, "#", ReportResources.Line, string.Empty, ReportResources.Coverage });
+
+                foreach (var line in fileAnalysis.Lines)
+                {
+                    reportRenderer.LineAnalysis(0, line);
+                }
+
+                reportRenderer.FinishTable();
+            }
+
+            reportRenderer.AddFooter();
+
+            {
+                var testMethods = codeFile.TestMethods.OrderBy(l => l.ShortName);
+                var codeElementsByFileIndex = new Dictionary<int, IEnumerable<CodeElement>>();
+
+                int fileIndex = 0;
+                codeElementsByFileIndex.Add(fileIndex++, codeFile.CodeElements.OrderBy(c => c.FirstLine));
+                
+                reportRenderer.TestMethods(testMethods, new[] { fileAnalysis }, codeElementsByFileIndex);
+            }
+
+            reportRenderer.SaveClassReport(this.ReportContext.ReportConfiguration.TargetDirectory, null, null);
+        }
+
+        /// <summary>
         /// Creates the summary report.
         /// </summary>
         /// <param name="reportRenderer">The report renderer.</param>
@@ -343,10 +430,9 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders
             reportRenderer.BeginSummaryTable(summaryResult.SupportsBranchCoverage);
 
             reportRenderer.SummaryAssembly(anAssembly, summaryResult.SupportsBranchCoverage);
-            foreach (var @class in anAssembly.Classes)
+            foreach (var codeFile in anAssembly.Classes.SelectMany(c => c.Files).Distinct())
             {
-                // sergesh bookmark
-                reportRenderer.SummaryClass(@class, summaryResult.SupportsBranchCoverage);
+                reportRenderer.SummaryFile(codeFile, summaryResult.SupportsBranchCoverage);
             }
 
             reportRenderer.FinishTable();

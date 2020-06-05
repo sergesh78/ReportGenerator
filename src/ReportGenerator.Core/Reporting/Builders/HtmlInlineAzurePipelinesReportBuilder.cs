@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Palmmedia.ReportGenerator.Core.Parser.Analysis;
 using Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering;
 
@@ -10,6 +12,8 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders
     /// </summary>
     public class HtmlInlineAzurePipelinesReportBuilder : ReportBuilderBase
     {
+        private static readonly HashSet<string> RenderedCodeFiles = new HashSet<string>();
+
         /// <summary>
         /// Gets the report type.
         /// </summary>
@@ -25,10 +29,28 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders
         /// <param name="fileAnalyses">The file analyses that correspond to the class.</param>
         public override void CreateClassReport(Class @class, IEnumerable<FileAnalysis> fileAnalyses)
         {
-            using (var renderer = new HtmlRenderer(false, HtmlMode.InlineCssAndJavaScript, "custom-azurepipelines.css"))
+            Parallel.ForEach(fileAnalyses, fileAnalysis =>
             {
-                this.CreateClassReport(renderer, @class, fileAnalyses);
-            }
+                if (string.IsNullOrEmpty(fileAnalysis.Error))
+                {
+                    using (var renderer = new HtmlRenderer(false, HtmlMode.InlineCssAndJavaScript))
+                    {
+                        var codeFile = @class.Files.First(f => f.Path.Equals(fileAnalysis.Path));
+                        string localPath = HtmlRenderer.GetFileReportFilename(codeFile.Path);
+
+                        bool shouldGenerateReport;
+                        lock (RenderedCodeFiles)
+                        {
+                            shouldGenerateReport = RenderedCodeFiles.Add(localPath);
+                        }
+
+                        if (shouldGenerateReport)
+                        {
+                            this.CreateFileReport(renderer, codeFile, fileAnalysis);
+                        }
+                    }
+                }
+            });
         }
 
         /// <summary>
@@ -40,6 +62,14 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders
             using (var renderer = new HtmlRenderer(false, HtmlMode.InlineCssAndJavaScript, "custom-azurepipelines.css"))
             {
                 this.CreateSummaryReport(renderer, summaryResult);
+            }
+
+            foreach (var assembly in summaryResult.Assemblies)
+            {
+                using (var renderer = new HtmlRenderer(false, HtmlMode.InlineCssAndJavaScript))
+                {
+                    this.CreateAssemblyReport(renderer, summaryResult, assembly);
+                }
             }
 
             File.Copy(

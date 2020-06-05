@@ -8,11 +8,13 @@ using Palmmedia.ReportGenerator.Core.CodeAnalysis;
 using Palmmedia.ReportGenerator.Core.Common;
 using Palmmedia.ReportGenerator.Core.Logging;
 using Palmmedia.ReportGenerator.Core.Parser;
+using Palmmedia.ReportGenerator.Core.Parser.Analysis;
 using Palmmedia.ReportGenerator.Core.Parser.FileReading;
 using Palmmedia.ReportGenerator.Core.Parser.Filtering;
 using Palmmedia.ReportGenerator.Core.Plugin;
 using Palmmedia.ReportGenerator.Core.Properties;
 using Palmmedia.ReportGenerator.Core.Reporting;
+using Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering;
 using Palmmedia.ReportGenerator.Core.Reporting.History;
 
 namespace Palmmedia.ReportGenerator.Core
@@ -132,6 +134,8 @@ namespace Palmmedia.ReportGenerator.Core
                     new DefaultFilter(reportConfiguration.FileFilters))
                         .ParseFiles(reportConfiguration.ReportFiles);
 
+                PostProcessParserResult(parserResult);
+
                 Logger.DebugFormat(Resources.ReportParsingTook, stopWatch.ElapsedMilliseconds / 1000d);
 
                 this.GenerateReport(
@@ -158,6 +162,45 @@ namespace Palmmedia.ReportGenerator.Core
 #endif
 
                 return false;
+            }
+        }
+
+        private void PostProcessParserResult(ParserResult parserResult)
+        {
+            var filesMap = new Dictionary<string, List<CodeFile>>();
+            foreach (Assembly a in parserResult.Assemblies)
+            {
+                foreach (Class c in a.Classes)
+                {
+                    foreach (CodeFile codeFile in c.Files)
+                    {
+                        string localPath = HtmlRenderer.GetFileReportFilename(codeFile.Path);
+                        if (filesMap.TryGetValue(localPath, out var prevValues))
+                        {
+                            // merge new copy with last, and push the most complete in the end
+                            codeFile.Merge(prevValues.Last());
+                            prevValues.Add(codeFile);
+                        }
+                        else
+                        {
+                            filesMap.Add(localPath, new List<CodeFile> { codeFile });
+                        }
+                    }
+                }
+            }
+
+            // now merge everything
+            foreach (var codeFiles in filesMap.Values)
+            {
+                if (codeFiles.Count > 1)
+                {
+                    var fullInfo = codeFiles.Last();
+                    codeFiles.RemoveAt(codeFiles.Count - 1);
+                    foreach (var file in codeFiles)
+                    {
+                        file.Merge(fullInfo);
+                    }
+                }
             }
         }
 

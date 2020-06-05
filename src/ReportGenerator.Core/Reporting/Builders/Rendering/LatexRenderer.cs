@@ -324,6 +324,11 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering
             this.reportTextWriter.WriteLine(row);
         }
 
+        public void SummaryFile(CodeFile codeFile, bool branchCoverageAvailable)
+        {
+            throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Adds metrics to the report.
         /// </summary>
@@ -603,6 +608,11 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering
         /// </summary>
         public void AddFooter()
         {
+        }
+
+        public void BeginFileReport(string targetDirectory, string path, string additionalTitle)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>

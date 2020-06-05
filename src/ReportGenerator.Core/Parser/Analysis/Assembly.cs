@@ -52,19 +52,20 @@ namespace Palmmedia.ReportGenerator.Core.Parser.Analysis
         /// Gets the number of covered lines.
         /// </summary>
         /// <value>The covered lines.</value>
-        public int CoveredLines => this.classes.Sum(c => c.CoveredLines);
+        public int CoveredLines => this.classes.SelectMany(c => c.Files).Distinct().Sum(c => c.CoveredLines);
 
         /// <summary>
         /// Gets the number of coverable lines.
         /// </summary>
         /// <value>The coverable lines.</value>
-        public int CoverableLines => this.classes.Sum(c => c.CoverableLines);
+        public int CoverableLines => this.classes.SelectMany(c => c.Files).Distinct().Sum(c => c.CoverableLines);
 
         /// <summary>
         /// Gets the number of total lines.
         /// </summary>
         /// <value>The total lines.</value>
-        public int? TotalLines => this.classes.Sum(c => c.TotalLines);
+        /// TODO: seems to be a bug if 2 classes defined in same file, but may be related to my changes
+        public int? TotalLines => this.classes.SelectMany(c => c.Files).Distinct().Sum(c => c.TotalLines);
 
         /// <summary>
         /// Gets the coverage quota of the class.
@@ -78,7 +79,7 @@ namespace Palmmedia.ReportGenerator.Core.Parser.Analysis
         /// <value>
         /// The number of covered branches.
         /// </value>
-        public int? CoveredBranches => this.classes.Sum(f => f.CoveredBranches);
+        public int? CoveredBranches => this.classes.SelectMany(c => c.Files).Distinct().Sum(f => f.CoveredBranches);
 
         /// <summary>
         /// Gets the number of total branches.
@@ -86,7 +87,7 @@ namespace Palmmedia.ReportGenerator.Core.Parser.Analysis
         /// <value>
         /// The number of total branches.
         /// </value>
-        public int? TotalBranches => this.classes.Sum(f => f.TotalBranches);
+        public int? TotalBranches => this.classes.SelectMany(c => c.Files).Distinct().Sum(f => f.TotalBranches);
 
         /// <summary>
         /// Gets the branch coverage quota of the class.
@@ -100,7 +101,7 @@ namespace Palmmedia.ReportGenerator.Core.Parser.Analysis
         /// <value>
         /// The number of covered code elements.
         /// </value>
-        public int CoveredCodeElements => this.classes.Sum(f => f.CoveredCodeElements);
+        public int CoveredCodeElements => this.classes.SelectMany(c => c.Files).Distinct().Sum(f => f.CoveredCodeElements);
 
         /// <summary>
         /// Gets the number of total code elements.
@@ -108,7 +109,7 @@ namespace Palmmedia.ReportGenerator.Core.Parser.Analysis
         /// <value>
         /// The number of total code elements.
         /// </value>
-        public int TotalCodeElements => this.classes.Sum(f => f.TotalCodeElements);
+        public int TotalCodeElements => this.classes.SelectMany(c => c.Files).Distinct().Sum(f => f.TotalCodeElements);
 
         /// <summary>
         /// Determines whether the specified <see cref="object"/> is equal to this instance.
@@ -119,15 +120,18 @@ namespace Palmmedia.ReportGenerator.Core.Parser.Analysis
         /// </returns>
         public override bool Equals(object obj)
         {
-            if (obj == null || !obj.GetType().Equals(typeof(Assembly)))
+            if (obj == null || obj.GetType() != typeof(Assembly))
             {
                 return false;
             }
-            else
+
+            if (ReferenceEquals(this, obj))
             {
-                var assembly = (Assembly)obj;
-                return assembly.Name.Equals(this.Name);
+                return true;
             }
+
+            var assembly = (Assembly)obj;
+            return assembly.Name.Equals(this.Name);
         }
 
         /// <summary>

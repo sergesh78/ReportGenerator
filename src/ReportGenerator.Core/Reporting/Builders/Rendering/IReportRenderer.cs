@@ -145,6 +145,8 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering
         /// <param name="class">The class.</param>
         /// <param name="branchCoverageAvailable">if set to <c>true</c> branch coverage is available.</param>
         void SummaryClass(Class @class, bool branchCoverageAvailable);
+        
+        void SummaryFile(CodeFile codeFile, bool branchCoverageAvailable);
 
         /// <summary>
         /// Adds metrics to the report
@@ -197,5 +199,7 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering
         /// Adds the footer to the report.
         /// </summary>
         void AddFooter();
+
+        void BeginFileReport(string targetDirectory, string path, string additionalTitle);
     }
 }

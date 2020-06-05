@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Palmmedia.ReportGenerator.Core.Parser.Analysis;
 using Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering;
 
@@ -68,9 +69,12 @@ namespace Palmmedia.ReportGenerator.Core.Reporting.Builders
 
             foreach (var assembly in summaryResult.Assemblies)
             {
-                using (var renderer = new HtmlRenderer(false, this.htmlMode))
+                foreach (var codeFile in assembly.Classes.SelectMany(aa => aa.Files).Distinct())
                 {
-                    this.CreateAssemblyReport(renderer, summaryResult, assembly);
+                    using (var renderer = new HtmlRenderer(false, this.htmlMode))
+                    {
+                        this.CreateAssemblyReport(renderer, summaryResult, assembly);
+                    }
                 }
             }
 
